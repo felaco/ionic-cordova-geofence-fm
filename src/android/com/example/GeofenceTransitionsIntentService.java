@@ -8,6 +8,8 @@ import android.app.PendingIntent;
 import android.app.TaskStackBuilder;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Handler;
@@ -18,13 +20,22 @@ import android.widget.Toast;
 import com.google.android.gms.location.Geofence;
 import com.google.android.gms.location.GeofencingEvent;
 import com.google.android.gms.location.LocationRequest;
-import com.google.firebase.iid.FirebaseInstanceId;
 
 import java.util.List;
+import java.util.Random;
+
+import cl.finmarkets.demo.geofence.MainActivity;
+import cl.finmarkets.demo.geofence.R;
 
 public class GeofenceTransitionsIntentService extends IntentService {
 
     private static final String TAG = "Geofence-Service";
+    private static String[] messageText = new String[] {
+            "Solo durante hoy, todo frutas con 20% de descuento",
+            "Solo durante hoy, las carnes Chilenas con 15% de descuento",
+            "Con tu tarjeta cencosud acumula el doble de puntos en tu próxima compra"
+    };
+    private static int notificationId = 2;
 
     public GeofenceTransitionsIntentService() {
         super(TAG);
@@ -66,47 +77,35 @@ public class GeofenceTransitionsIntentService extends IntentService {
         if (transitionType == Geofence.GEOFENCE_TRANSITION_ENTER) {
 
             List<Geofence> triggerList = geofencingEvent.getTriggeringGeofences();
+            Intent resultIntent = new Intent(this, MainActivity.class);
+            TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
+            stackBuilder.addNextIntentWithParentStack(resultIntent);
+            PendingIntent resultPendingIntent = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
 
             for (Geofence fence : triggerList) {
                 String fenceId = fence.getRequestId();
 
                 Log.i(TAG, "Entered -> " + fenceId);
+                Bitmap b = BitmapFactory.decodeResource(getResources(), R.drawable.jumbo);
+                String alertText = messageText[new Random().nextInt(messageText.length)];
 
-                String[] parts = fenceId.split("\\|");
+                NotificationCompat.Builder builder = new NotificationCompat.Builder(this,
+                                                                                    "cl.finmarkets.demo.geofence")
+                        .setSmallIcon(getApplicationContext().getApplicationInfo().icon)
+                        .setContentTitle("Notificación de oferta")
+                        .setContentText(alertText)
+                        .setVibrate(new long[] {500, 1000})
+                        .setContentIntent(resultPendingIntent)
+                        .setLargeIcon(b)
+                        .setStyle(new NotificationCompat.BigTextStyle().bigText(alertText));
 
-                Handler mHandler = new Handler(getMainLooper());
-                mHandler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        // Toast.makeText(getApplicationContext(), "Entered -> " + fenceId, Toast.LENGTH_SHORT).show();
-                        JSONParser jsonParser = new JSONParser();
-                        jsonParser.loadServiceFinmarkets(parts[0], parts[1], FirebaseInstanceId.getInstance().getToken(), "entrada");
-                    }
-                });
-
+                NotificationManager notManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+                notManager.notify(notificationId, builder.build());
+                notificationId++;
             }
         } else if (transitionType == Geofence.GEOFENCE_TRANSITION_EXIT) {
 
-            List<Geofence> triggerList = geofencingEvent.getTriggeringGeofences();
-
-            for (Geofence fence : triggerList) {
-                String fenceId = fence.getRequestId();
-
-                Log.i(TAG, "Exit -> " + fenceId);
-
-                String[] parts = fenceId.split("\\|");
-
-                Handler mHandler = new Handler(getMainLooper());
-                mHandler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        // Toast.makeText(getApplicationContext(), "Exit -> " + fenceId, Toast.LENGTH_SHORT).show();
-                        JSONParser jsonParser = new JSONParser();
-                        jsonParser.loadServiceFinmarkets(parts[0], parts[1], FirebaseInstanceId.getInstance().getToken(), "salida");
-                    }
-                });
-
-            }
+            // do nothing
         } else {
 
             LocationRequest locationRequest = LocationRequest.create();
@@ -134,7 +133,7 @@ public class GeofenceTransitionsIntentService extends IntentService {
 
                 String packageName = getApplicationContext().getPackageName();
                 Intent resultIntent = getApplicationContext().getPackageManager()
-                        .getLaunchIntentForPackage(packageName);
+                                                             .getLaunchIntentForPackage(packageName);
 
 
                 TaskStackBuilder stackBuilder = TaskStackBuilder.create(getApplicationContext());
@@ -144,13 +143,13 @@ public class GeofenceTransitionsIntentService extends IntentService {
 
                 NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID);
                 Notification notification = notificationBuilder.setOngoing(true)
-                        .setSmallIcon(getApplicationContext().getApplicationInfo().icon)
-                        .setContentTitle("App ejecutandose en segundo plano")
-                        .setPriority(NotificationManager.IMPORTANCE_MIN)
-                        .setCategory(Notification.CATEGORY_SERVICE)
-                        .setContentIntent(resultPendingIntent)
-                        .addAction(getApplicationContext().getApplicationInfo().icon, "APAGAR", pIntentlogin)
-                        .build();
+                                                               .setSmallIcon(getApplicationContext().getApplicationInfo().icon)
+                                                               .setContentTitle("App ejecutandose en segundo plano")
+                                                               .setPriority(NotificationManager.IMPORTANCE_MIN)
+                                                               .setCategory(Notification.CATEGORY_SERVICE)
+                                                               .setContentIntent(resultPendingIntent)
+                                                               .addAction(getApplicationContext().getApplicationInfo().icon, "APAGAR", pIntentlogin)
+                                                               .build();
 
 
                 startForeground(1, notification);

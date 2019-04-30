@@ -71,16 +71,30 @@ public class GeofenceSingleton {
     public void addGeofence(double latitude, double longitude, int radius, String uid) {
         Log.d(TAG, "addGeofence -> " + latitude + ", " + longitude + ", " + radius + ", " + uid);
         mGeofenceList.add(new Geofence.Builder()
-                .setRequestId(uid)
-                .setCircularRegion(
-                        latitude,
-                        longitude,
-                        radius
-                )
-                .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER |
-                        Geofence.GEOFENCE_TRANSITION_EXIT)
-                .setExpirationDuration(Geofence.NEVER_EXPIRE)
-                .build());
+                                  .setRequestId(uid)
+                                  .setCircularRegion(
+                                          latitude,
+                                          longitude,
+                                          radius
+                                  )
+                                  .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER |
+                                                              Geofence.GEOFENCE_TRANSITION_EXIT)
+                                  .setExpirationDuration(Geofence.NEVER_EXPIRE)
+                                  .build());
+    }
+
+    public synchronized void removeGeoFence(String id){
+        List <String> removeList = new ArrayList<>();
+        removeList.add(id);
+
+        for (int i = 0; i < mGeofenceList.size(); i++){
+            if (mGeofenceList.get(i).getRequestId().equals(id)){
+                mGeofenceList.remove(i);
+                break;
+            }
+        }
+
+        LocationServices.getGeofencingClient(appContext).removeGeofences(removeList);
     }
 
     private GeofencingRequest getGeofencingRequest() {
@@ -109,32 +123,32 @@ public class GeofenceSingleton {
             mFusedLocationClient = LocationServices.getFusedLocationProviderClient(appContext);
 
             mFusedLocationClient.getLastLocation()
-                    .addOnSuccessListener(new OnSuccessListener<Location>() {
-                        @Override
-                        public void onSuccess(Location location) {
-                            Log.d(TAG, "Fused YO LOCAL");
-                            if (location != null) {
-                                if (checkPermission())
-                                geofencingClient.addGeofences(
-                                        getGeofencingRequest(),
-                                        getGeofencePendingIntent()
-                                ).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                .addOnSuccessListener(new OnSuccessListener<Location>() {
                                     @Override
-                                    public void onSuccess(Void aVoid) {
-                                        // your success code
-                                        Log.d(TAG, "YO LOCAL");
-                                    }
-                                }).addOnFailureListener(new OnFailureListener() {
-                                    @Override
-                                    public void onFailure(@NonNull Exception e) {
-                                        // your fail code;
-                                        Log.d(TAG, "NOO LOCAL -> " + e.getMessage());
+                                    public void onSuccess(Location location) {
+                                        Log.d(TAG, "Fused YO LOCAL");
+                                        if (location != null) {
+                                            if (checkPermission())
+                                                geofencingClient.addGeofences(
+                                                        getGeofencingRequest(),
+                                                        getGeofencePendingIntent()
+                                                ).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                    @Override
+                                                    public void onSuccess(Void aVoid) {
+                                                        // your success code
+                                                        Log.d(TAG, "YO LOCAL");
+                                                    }
+                                                }).addOnFailureListener(new OnFailureListener() {
+                                                    @Override
+                                                    public void onFailure(@NonNull Exception e) {
+                                                        // your fail code;
+                                                        Log.d(TAG, "NOO LOCAL -> " + e.getMessage());
+                                                    }
+                                                });
+                                            Log.d(TAG, "Geofencing started");
+                                        }
                                     }
                                 });
-                                Log.d(TAG, "Geofencing started");
-                            }
-                        }
-                    });
 
             LocationRequest locationRequest = LocationRequest.create();
             locationRequest.setInterval(Constants.LOCATION_INTERVAL);
@@ -154,8 +168,8 @@ public class GeofenceSingleton {
 
             Handler mHandler = new Handler(getMainLooper());
             mHandler.post(new Runnable() {
-                              @Override
-                              public void run() {
+                @Override
+                public void run() {
                     if (checkPermission())
                         mFusedLocationClient.requestLocationUpdates(locationRequest, mLocationCallback, null);
                     Log.d(TAG, "FusedLocationClient requestLocationUpdates");

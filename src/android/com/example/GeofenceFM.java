@@ -2,6 +2,14 @@
  */
 package com.example;
 
+import android.Manifest;
+import android.content.Context;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.net.Uri;
+import android.provider.Settings;
+import android.util.Log;
+
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaInterface;
 import org.apache.cordova.CordovaPlugin;
@@ -10,19 +18,6 @@ import org.apache.cordova.PermissionHelper;
 import org.apache.cordova.PluginResult;
 import org.json.JSONArray;
 import org.json.JSONException;
-
-import android.Manifest;
-
-import android.content.Context;
-import android.content.Intent;
-import android.content.pm.PackageManager;
-
-import android.content.res.Resources;
-import android.net.Uri;
-import android.provider.Settings;
-import android.util.Log;
-
-import java.io.IOException;
 
 public class GeofenceFM extends CordovaPlugin {
     private static final String TAG = "GeofenceFM";
@@ -51,50 +46,59 @@ public class GeofenceFM extends CordovaPlugin {
         this.cordova.getActivity().startActivity(new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:"+this.cordova.getActivity().getPackageName())));
     }
 
+
+
     public boolean execute(String action, final JSONArray args, final CallbackContext callbackContext) throws JSONException {
         executedAction = new Action(action, args, callbackContext);
 
-        cordova.getThreadPool().execute(new Runnable() {
-            public void run() {
-                if (action.equals("init")) {
-                    if (callbackContext == null)
-                        Log.d(TAG, "Callback nulo 0");
-                    else
-                        Log.d(TAG, "Callback non-nulo 0");
-                    initialize(callbackContext);
-                }
-
-                if (action.equals("addOrUpdateFence")) {
-                    try {
-                        for (int i = 0; i < args.optJSONArray(0).length(); i++) {
-
-                            Log.d(TAG, "args.getJSONObject -> " + args.optJSONArray(0).optJSONObject(i));
-
-                            String id = args.optJSONArray(0).optJSONObject(i).optString("id");
-                            double latitud = args.optJSONArray(0).optJSONObject(i).optDouble("latitud");
-                            double longitud = args.optJSONArray(0).optJSONObject(i).optDouble("longitud");
-                            int radius = args.optJSONArray(0).optJSONObject(i).optInt("radius");
-
-                            String[] parts = id.split("\\|");
-
-                            String idFence = parts[0] + "|" + parts[1];
-                            geofenceSingleton.addGeofence(latitud, longitud, radius, idFence);
-                        }
-
-                        geofenceSingleton.startGeofencing(cordova.getActivity());
-
-                        final PluginResult result = new PluginResult(PluginResult.Status.OK,
-                                "Hola todo addOrUpdateFence... ");
-                        callbackContext.sendPluginResult(result);
-
-                    } catch (Exception e) {
-
-                        Log.e(TAG, "execute: Error " + e.getMessage());
-                        callbackContext.error(e.getMessage());
-                    }
-                }
-
+        cordova.getThreadPool().execute(() -> {
+            if (action.equals("init")) {
+                if (callbackContext == null)
+                    Log.d(TAG, "Callback nulo 0");
+                else
+                    Log.d(TAG, "Callback non-nulo 0");
+                initialize(callbackContext);
             }
+
+            if (action.equals("addOrUpdateFence")) {
+                try {
+                    for (int i = 0; i < args.optJSONArray(0).length(); i++) {
+
+                        Log.d(TAG, "args.getJSONObject -> " + args.optJSONArray(0).optJSONObject(i));
+
+                        String id = args.optJSONArray(0).optJSONObject(i).optString("id");
+                        double latitud = args.optJSONArray(0).optJSONObject(i).optDouble("latitud");
+                        double longitud = args.optJSONArray(0).optJSONObject(i).optDouble("longitud");
+                        int radius = args.optJSONArray(0).optJSONObject(i).optInt("radius");
+
+                        geofenceSingleton.addGeofence(latitud, longitud, radius, id);
+                    }
+
+                    geofenceSingleton.startGeofencing(cordova.getActivity());
+
+                    final PluginResult result = new PluginResult(PluginResult.Status.OK,
+                                                                 "Hola todo addOrUpdateFence... ");
+                    callbackContext.sendPluginResult(result);
+
+                } catch (Exception e) {
+
+                    Log.e(TAG, "execute: Error " + e.getMessage());
+                    callbackContext.error(e.getMessage());
+                }
+
+            } else if (action.equals("removeGeofence")){
+                try {
+                    String id = args.optJSONObject(0).optString("id");
+                    geofenceSingleton.removeGeoFence(id);
+
+                    PluginResult result = new PluginResult(PluginResult.Status.OK, "Exito, creo...");
+                    callbackContext.sendPluginResult(result);
+
+                } catch (Exception e){
+                    callbackContext.error(e.getMessage());
+                }
+            }
+
         });
         return true;
     }
@@ -137,7 +141,7 @@ public class GeofenceFM extends CordovaPlugin {
             for (int r:grantResults) {
                 if (r == PackageManager.PERMISSION_DENIED) {
                     Log.d(TAG, "Permission Denied!");
-                    result = new PluginResult(PluginResult.Status.OK, "PERMISSION_DENIED");
+                    result = new PluginResult(PluginResult.Status.ILLEGAL_ACCESS_EXCEPTION);
                     executedAction.callbackContext.sendPluginResult(result);
                     executedAction = null;
                     return;
