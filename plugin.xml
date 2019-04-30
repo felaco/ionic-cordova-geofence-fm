@@ -40,11 +40,11 @@
       <framework src="com.google.firebase:firebase-messaging:11.6.2"/>
       <dependency id="cordova-support-google-services" version="~1.1.0"/>
         
-      <source-file src="src/android/com/example/GeofenceFM.java" target-dir="src/com/example/" />
-      <source-file src="src/android/com/example/GeofenceSingleton.java" target-dir="src/com/example/" />
-      <source-file src="src/android/com/example/GeofenceTransitionsIntentService.java" target-dir="src/com/example/" />
-      <source-file src="src/android/com/example/JSONParser.java" target-dir="src/com/example/" />
-      <source-file src="src/android/com/example/Constants.java" target-dir="src/com/example/" />
+      <source-file src="src/android/cl/finmarkets/geofence-fm/GeofenceFM.java" target-dir="cl/finmarkets/geofence-fm/" />
+      <source-file src="src/android/cl/finmarkets/geofence-fm/GeofenceSingleton.java" target-dir="cl/finmarkets/geofence-fm/" />
+      <source-file src="src/android/cl/finmarkets/geofence-fm/GeofenceTransitionsIntentService.java" target-dir="cl/finmarkets/geofence-fm/" />
+      <source-file src="src/android/cl/finmarkets/geofence-fm/JSONParser.java" target-dir="cl/finmarkets/geofence-fm/" />
+      <source-file src="src/androidcl/finmarkets/geofence-fm/Constants.java" target-dir="cl/finmarkets/geofence-fm/" />
       
     </platform>
 
