@@ -1,4 +1,4 @@
-package com.example;
+package cl.finmarkets.geofence;
 
 import android.app.IntentService;
 import android.app.Notification;
@@ -12,10 +12,8 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.os.Build;
-import android.os.Handler;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.google.android.gms.location.Geofence;
 import com.google.android.gms.location.GeofencingEvent;
@@ -30,6 +28,7 @@ import cl.finmarkets.demo.geofence.R;
 public class GeofenceTransitionsIntentService extends IntentService {
 
     private static final String TAG = "Geofence-Service";
+    String NOTIFICATION_CHANNEL_ID = "cl.finmarkets.geofence-demo";
     private static String[] messageText = new String[] {
             "Solo durante hoy, todo frutas con 20% de descuento",
             "Solo durante hoy, las carnes Chilenas con 15% de descuento",
@@ -75,6 +74,7 @@ public class GeofenceTransitionsIntentService extends IntentService {
         Log.i(TAG, "FenceTransition -> " + transitionType);
 
         if (transitionType == Geofence.GEOFENCE_TRANSITION_ENTER) {
+            createNotificationChannel();
 
             List<Geofence> triggerList = geofencingEvent.getTriggeringGeofences();
             Intent resultIntent = new Intent(this, MainActivity.class);
@@ -122,7 +122,6 @@ public class GeofenceTransitionsIntentService extends IntentService {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 Log.i(TAG, "Entro a uno -> **********");
 
-                String NOTIFICATION_CHANNEL_ID = "com.example.MiPlugin";
                 String channelName = "My Background Service";
                 NotificationChannel chan = new NotificationChannel(NOTIFICATION_CHANNEL_ID, channelName, NotificationManager.IMPORTANCE_NONE);
                 chan.setLightColor(Color.BLUE);
@@ -170,6 +169,23 @@ public class GeofenceTransitionsIntentService extends IntentService {
         }
 
         return START_NOT_STICKY;
+    }
+
+    private void createNotificationChannel(){
+        String NOTIFICATION_CHANNEL_ID = "cl.finmarkets.geofence-demo";
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
+            CharSequence name = "finmarkets-geofence-demo";
+            String description = "Canal de notificaciones para app de muestra de geofence desde finmarkets";
+            int importance = NotificationManager.IMPORTANCE_DEFAULT;
+
+            NotificationChannel channel = new NotificationChannel(NOTIFICATION_CHANNEL_ID,
+                    name,
+                    importance);
+
+            channel.setDescription(description);
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(channel);
+        }
     }
 
 }

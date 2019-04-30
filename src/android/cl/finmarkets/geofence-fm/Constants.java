@@ -1,4 +1,4 @@
-package com.example;
+package cl.finmarkets.geofence;
 
 public class Constants {
 

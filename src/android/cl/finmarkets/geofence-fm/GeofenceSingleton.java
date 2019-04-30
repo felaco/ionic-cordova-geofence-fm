@@ -1,4 +1,4 @@
-package com.example;
+package cl.finmarkets.geofence;
 
 import android.Manifest;
 import android.app.Activity;

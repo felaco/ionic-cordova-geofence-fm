@@ -1,6 +1,6 @@
 /**
  */
-package com.example;
+package cl.finmarkets.geofence;
 
 import android.os.AsyncTask;
 import android.util.Log;
