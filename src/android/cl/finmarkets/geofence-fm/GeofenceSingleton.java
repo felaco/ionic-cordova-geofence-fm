@@ -94,7 +94,8 @@ public class GeofenceSingleton {
             }
         }
 
-        LocationServices.getGeofencingClient(appContext).removeGeofences(removeList);
+        Log.d(TAG, "pidiendo remover la cerca id -> " + id);
+        geofencingClient.removeGeofences(removeList);
     }
 
     private GeofencingRequest getGeofencingRequest() {
