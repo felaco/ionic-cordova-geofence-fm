@@ -2,8 +2,11 @@
 #import <MapKit/MapKit.h>
 #import <Cordova/CDVPlugin.h>
 #import <CoreLocation/CoreLocation.h>
+#import <Foundation/Foundation.h>
+#import <UserNotifications/UserNotifications.h>
+#import "WPSAlertController.h"
 
-@interface GeofenceFM : CDVPlugin <CLLocationManagerDelegate> {
+@interface GeofenceFM : CDVPlugin <CLLocationManagerDelegate , UNUserNotificationCenterDelegate> {
 }
 
 // Encabezados de las funciones del plugin
@@ -13,5 +16,6 @@
 @property (strong, nonatomic) CLLocationManager *locationManager;
 @property (strong, nonatomic) CDVInvokedUrlCommand *command;
 @property (nonatomic, copy) NSString *callbackId;
+@property (nonatomic) NSMutableDictionary *fences;
 
 @end

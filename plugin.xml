@@ -62,5 +62,7 @@
 
         <header-file src="src/ios/GeofenceFM.h" />
         <source-file src="src/ios/GeofenceFM.m" />
+        <header-file src="src/ios/WPSAlertController.h" />
+        <source-file src="src/ios/WPSAlertController.m" />
     </platform>
 </plugin>

@@ -2,6 +2,8 @@
 
 #import <Cordova/CDVAvailability.h>
 
+
+
 @implementation GeofenceFM
 
 - (void)pluginInitialize {
@@ -11,9 +13,35 @@
 {
     NSLog(@"init -> GeofenceFM");
     self.command = command;
+
+    
+    UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
+    center.delegate=self;
+    [center requestAuthorizationWithOptions:(UNAuthorizationOptionAlert + UNAuthorizationOptionSound)
+       completionHandler:^(BOOL granted, NSError * _Nullable error) {
+	
+           UNMutableNotificationContent *content = [UNMutableNotificationContent new];
+           content.title = @"Alerta";
+           content.body = @"Contenido de la alerta";
+           content.sound = [UNNotificationSound defaultSound];
+           UNTimeIntervalNotificationTrigger *trigger = [UNTimeIntervalNotificationTrigger triggerWithTimeInterval:1 repeats:NO];
+           
+           NSString *identifier = @"UYLLocalNotification";
+           UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:identifier content:content trigger:trigger];
+           
+           [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
+               if (error != nil) {
+                   NSLog(@"ERROR: %@",error);
+               }
+           }];
+
+    }];
+
     
     self.locationManager = [[CLLocationManager alloc] init];
     [self.locationManager setDelegate:self];
+
+    self.fences = [[NSMutableDictionary alloc] init];
 
     if ([self.locationManager respondsToSelector:@selector(requestAlwaysAuthorization)]) {
         [self.locationManager requestAlwaysAuthorization];
@@ -85,6 +113,8 @@
         CLLocationCoordinate2D center = CLLocationCoordinate2DMake(latitud, longitud);
         CLRegion *bridge = [[CLCircularRegion alloc]initWithCenter:center radius:radius identifier:_id];
         
+        [self.fences setValue:bridge forKey:_id];
+
         [self.locationManager startMonitoringForRegion:bridge];
     }
     
@@ -97,7 +127,7 @@
 }
 
 -(void)locationManager:(CLLocationManager *)manager didEnterRegion:(CLRegion *)region {
-    
+    NSLog(@"hola desde enter region");
 }
 
 
@@ -132,7 +162,24 @@
     
     NSArray *array = [region.identifier componentsSeparatedByString:@"|"];
     NSLog(@"%@",array);
-    [self loginSession:array[1] changeArea:array[0] deviceToken:array[2] action:@"entrada"];
+    
+    UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
+    
+    UNMutableNotificationContent *content = [UNMutableNotificationContent new];
+    content.title = @"Alerta";
+    content.body = @"Entro al area";
+    content.sound = [UNNotificationSound defaultSound];
+    UNTimeIntervalNotificationTrigger *trigger = [UNTimeIntervalNotificationTrigger triggerWithTimeInterval:1 repeats:NO];
+    
+    NSString *identifier = @"UYLLocalNotification";
+    UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:identifier content:content trigger:trigger];
+    
+    [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
+        if (error != nil) {
+            NSLog(@"ERROR: %@",error);
+        }
+    }];
+    
 }
 
 - (void)exitGeofence:(CLRegion *)region {
@@ -140,90 +187,43 @@
     
     NSArray *array = [region.identifier componentsSeparatedByString:@"|"];
     NSLog(@"%@",array);
-    [self loginSession:array[1] changeArea:array[0] deviceToken:array[2] action:@"salida"];
 }
 
--(void) loginSession:(NSString *) rut changeArea:(NSString *) identifier deviceToken:(NSString *) deviceToken action:(NSString *)action {
-
-    // 1
-    NSURL *url = [NSURL URLWithString:@"http://www.finmarketsbackup.cl/jsepulveda/collahuasi-sos/api/login"];
-    NSURLSessionConfiguration *config = [NSURLSessionConfiguration defaultSessionConfiguration];
-    NSURLSession *session = [NSURLSession sessionWithConfiguration:config];
+- (void)userNotificationCenter:(UNUserNotificationCenter *)center
+       willPresentNotification:(UNNotification *)notification
+         withCompletionHandler:(void (^)(UNNotificationPresentationOptions options))completionHandler {
+    // Update the app interface directly.
     
-    // 2
-    NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:url];
-    request.HTTPMethod = @"POST";
+    // Play a sound.
+    NSLog(@"prueba de notificacion : ");
+    completionHandler(UNNotificationPresentationOptionSound);
     
-    [request setValue:@"application/json" forHTTPHeaderField:@"Accept"];
-    [request setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
+    NSString *message = @"Some message...";
     
-    // 3
-    NSDictionary *dictionary = @{@"rut": rut, @"clave": deviceToken};
-    NSError *error = nil;
-    NSData *data = [NSJSONSerialization dataWithJSONObject:dictionary
-                                                   options:kNilOptions error:&error];
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:nil
+                                                                   message:message
+                                                            preferredStyle:UIAlertControllerStyleAlert];
     
-    if (!error) {
-        // 4
-        NSURLSessionUploadTask *uploadTask = [session uploadTaskWithRequest:request
-                                                                   fromData:data completionHandler:^(NSData *data,NSURLResponse *response,NSError *error) {
-                                                                       // Handle response here
-                                                                       NSLog(@"%@",data);
-                                                                       NSLog(@"%@",response);
-                                                                       NSLog(@"%@",error);
-                                                                       
-                                                                       NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:kNilOptions error:&error];
-                                                                       
-                                                                       NSLog(@"jsonSession: %@",  [[json objectForKey:@"data"] objectForKey:@"token"]);
-                                                                       [self callServiceEnterArea:identifier tokenSession:[[json objectForKey:@"data"] objectForKey:@"token"] action:action];
-                                                                   }];
-        
-        // 5
-        [uploadTask resume];
-    }
+    int duration = 1; // duration in seconds
     
+    NSArray *misAlertas;
+    
+    misAlertas = [NSArray arrayWithObjects: @"aleta 1", @"alerta 2", @"alerta 3", @"alerta 4", nil];
+    
+    int count = [misAlertas count];
+    int a =0+arc4random()%count;
+    
+    NSString *mensajeAlerta=[misAlertas objectAtIndex: a];
+    NSLog (@"Elemento ramdom = %@", [misAlertas objectAtIndex: a]);
+    
+    [WPSAlertController presentOkayAlertWithTitle:@"alerta" message:mensajeAlerta];
+    
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, duration * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+        [alert dismissViewControllerAnimated:YES completion:nil];
+    });
 }
 
--(void) callServiceEnterArea:(NSString *)area tokenSession:(NSString *)token action:(NSString *)action {
-    
-    NSString *tokenSession = [NSString stringWithFormat:@"Bearer %@", token];
-    
-    // 1
-    NSURL *url = [NSURL URLWithString:@"http://www.finmarketsbackup.cl/jsepulveda/collahuasi-sos/api/user/updatearea"];
-    NSURLSessionConfiguration *config = [NSURLSessionConfiguration defaultSessionConfiguration];
-    NSURLSession *session = [NSURLSession sessionWithConfiguration:config];
-    
-    // 2
-    NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:url];
-    request.HTTPMethod = @"POST";
-    
-    [request setValue:@"application/json" forHTTPHeaderField:@"Accept"];
-    [request setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
-    [request setValue:tokenSession forHTTPHeaderField:@"Authorization"];
-    
-    // 3
-    NSDictionary *dictionary = @{@"area": area, @"action": action};
-    NSError *error = nil;
-    NSData *data = [NSJSONSerialization dataWithJSONObject:dictionary
-                                                   options:kNilOptions error:&error];
-    
-    if (!error) {
-        // 4
-        NSURLSessionUploadTask *uploadTask = [session uploadTaskWithRequest:request
-                                                                   fromData:data completionHandler:^(NSData *data,NSURLResponse *response,NSError *error) {
-                                                                       // Handle response here
-                                                                       NSLog(@"%@",data);
-                                                                       NSLog(@"%@",response);
-                                                                       NSLog(@"%@",error);
-                                                                       
-                                                                       NSMutableArray *json = [NSJSONSerialization JSONObjectWithData:data options:kNilOptions error:&error];
-                                                                       NSLog(@"json: %@", json);
-                                                                   }];
-        
-        // 5
-        [uploadTask resume];
-    }
-    
-}
+
+
 
 @end
