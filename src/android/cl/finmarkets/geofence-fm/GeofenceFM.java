@@ -74,7 +74,7 @@ public class GeofenceFM extends CordovaPlugin {
                         geofenceSingleton.addGeofence(latitud, longitud, radius, id);
                     }
 
-                    geofenceSingleton.startGeofencing(cordova.getActivity());
+//                    geofenceSingleton.startGeofencing(cordova.getActivity());
 
                     final PluginResult result = new PluginResult(PluginResult.Status.OK,
                                                                  "Hola todo addOrUpdateFence... ");
@@ -89,10 +89,19 @@ public class GeofenceFM extends CordovaPlugin {
             } else if (action.equals("removeGeofence")){
                 try {
                     String id = args.optJSONObject(0).optString("id");
-                    geofenceSingleton.removeGeoFence(id);
+                    geofenceSingleton.removeGeoFence(id).addOnSuccessListener(runnable -> {
+                        Log.i(TAG, "Remover geofence correcto id -> " + id);
+                        PluginResult result = new PluginResult(PluginResult.Status.OK, "Exito, creo...");
+                        callbackContext.sendPluginResult(result);
 
-                    PluginResult result = new PluginResult(PluginResult.Status.OK, "Exito, creo...");
-                    callbackContext.sendPluginResult(result);
+                    }).addOnFailureListener(runnable -> {
+                        String causa = runnable.getMessage();
+                        Log.i(TAG, "Remover geofence error id -> " +id + " causa -> " + causa);
+
+                        PluginResult result = new PluginResult(PluginResult.Status.ERROR, causa);
+                        callbackContext.sendPluginResult(result);
+                    });
+
 
                 } catch (Exception e){
                     callbackContext.error(e.getMessage());

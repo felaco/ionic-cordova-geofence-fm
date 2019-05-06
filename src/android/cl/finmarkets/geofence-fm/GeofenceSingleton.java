@@ -28,6 +28,7 @@ import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -54,36 +55,46 @@ public class GeofenceSingleton {
 
         geofencingClient = LocationServices.getGeofencingClient(appContext);
 
-        if(!isServiceRunning(activity, GeofenceTransitionsIntentService.class.getName())) {
-            Log.d(TAG, "isServiceRunning -> FALSO");
-            Intent myService = new Intent(activity.getApplicationContext(), GeofenceTransitionsIntentService.class);
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                activity.startForegroundService(myService);
-            } else {
-                activity.startService(myService);
-            }
-        } else {
-            Log.d(TAG, "isServiceRunning -> VERDAD");
-        }
+//        if(!isServiceRunning(activity, GeofenceTransitionsIntentService.class.getName())) {
+//            Log.d(TAG, "isServiceRunning -> FALSO");
+//            Intent myService = new Intent(activity.getApplicationContext(), GeofenceTransitionsIntentService.class);
+//
+//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+//                activity.startForegroundService(myService);
+//            } else {
+//                activity.startService(myService);
+//            }
+//        } else {
+//            Log.d(TAG, "isServiceRunning -> VERDAD");
+//        }
     }
 
     public void addGeofence(double latitude, double longitude, int radius, String uid) {
         Log.d(TAG, "addGeofence -> " + latitude + ", " + longitude + ", " + radius + ", " + uid);
-        mGeofenceList.add(new Geofence.Builder()
-                                  .setRequestId(uid)
-                                  .setCircularRegion(
-                                          latitude,
-                                          longitude,
-                                          radius
-                                  )
-                                  .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER |
-                                                              Geofence.GEOFENCE_TRANSITION_EXIT)
-                                  .setExpirationDuration(Geofence.NEVER_EXPIRE)
-                                  .build());
+        Geofence newGeofence = new Geofence.Builder()
+                .setRequestId(uid)
+                .setCircularRegion(
+                        latitude,
+                        longitude,
+                        radius
+                )
+                .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER |
+                        Geofence.GEOFENCE_TRANSITION_EXIT)
+                .setExpirationDuration(Geofence.NEVER_EXPIRE)
+                .build();
+
+        mGeofenceList.add(newGeofence);
+        GeofencingRequest.Builder builder = new GeofencingRequest.Builder();
+
+        if (checkPermission()){
+            geofencingClient.addGeofences(builder.addGeofence(newGeofence).build(),
+                    getGeofencePendingIntent())
+                    .addOnSuccessListener(runnable -> Log.i(TAG, "Exito agregando geofence id -> " + uid))
+                    .addOnFailureListener(runnable -> Log.e(TAG, "error agregando el geofence id -> " + uid));
+        }
     }
 
-    public synchronized void removeGeoFence(String id){
+    public Task<Void> removeGeoFence(String id){
         List <String> removeList = new ArrayList<>();
         removeList.add(id);
 
@@ -95,7 +106,7 @@ public class GeofenceSingleton {
         }
 
         Log.d(TAG, "pidiendo remover la cerca id -> " + id);
-        geofencingClient.removeGeofences(removeList);
+        return geofencingClient.removeGeofences(removeList);
     }
 
     private GeofencingRequest getGeofencingRequest() {
