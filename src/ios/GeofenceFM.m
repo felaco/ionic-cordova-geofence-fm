@@ -23,7 +23,7 @@
            UNMutableNotificationContent *content = [UNMutableNotificationContent new];
            content.title = @"Alerta";
            content.body = @"Contenido de la alerta";
-           content.sound = [UNNotificationSound defaultSound];
+           //content.sound = [UNNotificationSound defaultSound];
            UNTimeIntervalNotificationTrigger *trigger = [UNTimeIntervalNotificationTrigger triggerWithTimeInterval:1 repeats:NO];
            
            NSString *identifier = @"UYLLocalNotification";
@@ -223,7 +223,9 @@
     });
 }
 
-
+- (void) getGeofences:(CDVInvokedUrlCommand*)command{
+    NSLog(@"LLEgo al getGeofence");
+}
 
 
 @end
