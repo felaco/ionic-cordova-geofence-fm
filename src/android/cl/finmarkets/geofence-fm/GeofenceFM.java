@@ -1,14 +1,24 @@
 /**
+ *
  */
 package cl.finmarkets.geofence;
 
 import android.Manifest;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.provider.Settings;
+import android.support.v4.app.ActivityCompat;
 import android.util.Log;
+import android.view.View;
+
+import com.google.android.gms.location.Geofence;
+import com.google.android.gms.location.GeofencingClient;
+import com.google.android.gms.location.GeofencingRequest;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.tasks.Task;
 
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaInterface;
@@ -19,10 +29,18 @@ import org.apache.cordova.PluginResult;
 import org.json.JSONArray;
 import org.json.JSONException;
 
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+
+import cl.finmarkets.demo.geofence.MainActivity;
+
 public class GeofenceFM extends CordovaPlugin {
     private static final String TAG = "GeofenceFM";
-    private GeofenceSingleton geofenceSingleton;
+    private GeofencingClient geofencingClient;
     private Context context;
+    private PendingIntent geofencePendingIntent;
+    private List<Geofence> geofenceList = new ArrayList<>();
 
     private class Action {
         public String action;
@@ -40,76 +58,98 @@ public class GeofenceFM extends CordovaPlugin {
 
     public void initialize(CordovaInterface cordova, CordovaWebView webView) {
         super.initialize(cordova, webView);
-        context = this.cordova.getActivity().getApplicationContext();
         Log.d(TAG, "Inicializando GeofenceFM");
-        geofenceSingleton = new GeofenceSingleton(this.cordova.getActivity());
-        this.cordova.getActivity().startActivity(new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:"+this.cordova.getActivity().getPackageName())));
+        context = this.cordova.getActivity().getApplicationContext();
+        this.geofencingClient = LocationServices.getGeofencingClient(context);
+        this.cordova.getActivity().startActivity(new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:" + this.cordova.getActivity().getPackageName())));
     }
-
 
 
     public boolean execute(String action, final JSONArray args, final CallbackContext callbackContext) throws JSONException {
         executedAction = new Action(action, args, callbackContext);
 
         cordova.getThreadPool().execute(() -> {
-            if (action.equals("init")) {
-                if (callbackContext == null)
-                    Log.d(TAG, "Callback nulo 0");
-                else
-                    Log.d(TAG, "Callback non-nulo 0");
-                initialize(callbackContext);
-            }
+            switch (action) {
+                case "init":
+                    if (callbackContext == null)
+                        Log.d(TAG, "Callback nulo 0");
+                    else
+                        Log.d(TAG, "Callback non-nulo 0");
+                    initialize(callbackContext);
+                    break;
+                case "addOrUpdateFence":
+                    try {
+                        Log.d(TAG, "args json object: " + args.getJSONObject(0));
+                        String id = args.optJSONObject(0).optString("id");
+                        double lat = args.optJSONObject(0).optDouble("latitud");
+                        double lng = args.optJSONObject(0).optDouble("longitud");
+                        Double radius = args.optJSONObject(0).optDouble("radius");
 
-            if (action.equals("addOrUpdateFence")) {
-                try {
-                    for (int i = 0; i < args.optJSONArray(0).length(); i++) {
+                        Geofence geofence = this.buildGeofence(id, lat, lng, radius.floatValue());
+                        if (checkPermission())
+                            this.geofencingClient.addGeofences(this.getGeofencingRequest(geofence),
+                                    this.getGeofencePendingIntent());
 
-                        Log.d(TAG, "args.getJSONObject -> " + args.optJSONArray(0).optJSONObject(i));
 
-                        String id = args.optJSONArray(0).optJSONObject(i).optString("id");
-                        double latitud = args.optJSONArray(0).optJSONObject(i).optDouble("latitud");
-                        double longitud = args.optJSONArray(0).optJSONObject(i).optDouble("longitud");
-                        int radius = args.optJSONArray(0).optJSONObject(i).optInt("radius");
+                        final PluginResult result = new PluginResult(PluginResult.Status.OK,
+                                "Hola todo addOrUpdateFence... ");
+                        callbackContext.sendPluginResult(result);
 
-                        geofenceSingleton.addGeofence(latitud, longitud, radius, id);
+                    } catch (Exception e) {
+
+                        Log.e(TAG, "execute: Error " + e.getMessage());
+                        callbackContext.error(e.getMessage());
                     }
 
-//                    geofenceSingleton.startGeofencing(cordova.getActivity());
+                    break;
+                case "removeGeofence":
+                    try {
+                        String id = args.optJSONObject(0).optString("id");
+                        List<String> idList = new LinkedList<>();
+                        idList.add(id);
 
-                    final PluginResult result = new PluginResult(PluginResult.Status.OK,
-                                                                 "Hola todo addOrUpdateFence... ");
-                    callbackContext.sendPluginResult(result);
+                        Task<Void> task = this.geofencingClient.removeGeofences(idList);
+                        task.addOnSuccessListener(aVoid -> callbackContext.success());
+                        task.addOnFailureListener(e -> callbackContext.error(e.getMessage()));
 
-                } catch (Exception e) {
-
-                    Log.e(TAG, "execute: Error " + e.getMessage());
-                    callbackContext.error(e.getMessage());
-                }
-
-            } else if (action.equals("removeGeofence")){
-                try {
-                    String id = args.optJSONObject(0).optString("id");
-                    geofenceSingleton.removeGeoFence(id).addOnSuccessListener(runnable -> {
-                        Log.i(TAG, "Remover geofence correcto id -> " + id);
-                        PluginResult result = new PluginResult(PluginResult.Status.OK, "Exito, creo...");
-                        callbackContext.sendPluginResult(result);
-
-                    }).addOnFailureListener(runnable -> {
-                        String causa = runnable.getMessage();
-                        Log.i(TAG, "Remover geofence error id -> " +id + " causa -> " + causa);
-
-                        PluginResult result = new PluginResult(PluginResult.Status.ERROR, causa);
-                        callbackContext.sendPluginResult(result);
-                    });
-
-
-                } catch (Exception e){
-                    callbackContext.error(e.getMessage());
-                }
+                    } catch (Exception e) {
+                        callbackContext.error(e.getMessage());
+                    }
+                    break;
             }
 
         });
         return true;
+    }
+
+    private PendingIntent getGeofencePendingIntent() {
+        if (this.geofencePendingIntent != null)
+            return this.geofencePendingIntent;
+
+        Intent intent = new Intent(this.context, GeofenceBroadcastReceiver.class);
+        this.geofencePendingIntent = PendingIntent.getBroadcast(this.context, 0,
+                intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        return this.geofencePendingIntent;
+    }
+
+    private GeofencingRequest getGeofencingRequest(Geofence geofence) {
+        GeofencingRequest.Builder builder = new GeofencingRequest.Builder();
+        builder.setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_DWELL | GeofencingRequest.INITIAL_TRIGGER_ENTER);
+        builder.addGeofence(geofence);
+        return builder.build();
+    }
+
+    private Geofence buildGeofence(String id, double lat, double lng, float radius) {
+        return new Geofence.Builder()
+                .setRequestId(id)
+                .setLoiteringDelay(1000 * 60 * 10)
+                .setCircularRegion(lat, lng, radius)
+                .setExpirationDuration(Geofence.NEVER_EXPIRE)
+                .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER
+                        | Geofence.GEOFENCE_TRANSITION_EXIT
+                        | Geofence.GEOFENCE_TRANSITION_DWELL)
+                .setNotificationResponsiveness(1000 * 40)
+                .build();
     }
 
     public boolean execute(Action action) throws JSONException {
@@ -147,7 +187,7 @@ public class GeofenceFM extends CordovaPlugin {
         PluginResult result;
 
         if (executedAction != null) {
-            for (int r:grantResults) {
+            for (int r : grantResults) {
                 if (r == PackageManager.PERMISSION_DENIED) {
                     Log.d(TAG, "Permission Denied!");
                     result = new PluginResult(PluginResult.Status.ILLEGAL_ACCESS_EXCEPTION);
@@ -161,6 +201,12 @@ public class GeofenceFM extends CordovaPlugin {
             executedAction = null;
         }
 
+    }
+
+    private boolean checkPermission() {
+        int permissionState = ActivityCompat.checkSelfPermission(this.context,
+                Manifest.permission.ACCESS_FINE_LOCATION);
+        return permissionState == PackageManager.PERMISSION_GRANTED;
     }
 
 }

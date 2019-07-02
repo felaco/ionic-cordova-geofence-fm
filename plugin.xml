@@ -20,7 +20,7 @@
       </js-module>
       <config-file target="res/xml/config.xml" parent="/*">
         <feature name="GeofenceFM">
-          <param name="android-package" value="cl.finmarkets.geofence" />
+          <param name="android-package" value="cl.finmarkets.geofence.GeofenceFM" />
           <param name="onload" value="true" />
         </feature>
       </config-file>
@@ -30,10 +30,17 @@
             <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
             <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
             <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+            <uses-permission android:name="android.permission.INTERNET" />
         </config-file>
 
         <config-file target="AndroidManifest.xml" parent="/manifest/application">
-            <service android:name="cl.finmarkets.geofence.GeofenceTransitionsIntentService" />
+          <service android:name="cl.finmarkets.geofence.GeofenceTransitionsJobIntentService"
+            android:exported="true"
+            android:permission="android.permission.BIND_JOB_SERVICE"/>
+        
+          <receiver android:name="cl.finmarkets.geofence.GeofenceBroadcastReceiver" 
+              android:enabled="true"
+              android:exported="true"/>
         </config-file>
 
       <framework src='com.google.android.gms:play-services-location:16.0.0' />
@@ -41,10 +48,10 @@
       <dependency id="cordova-support-google-services" version="~1.1.0"/>
         
       <source-file src="src/android/cl/finmarkets/geofence-fm/GeofenceFM.java" target-dir="cl/finmarkets/geofence/" />
-      <source-file src="src/android/cl/finmarkets/geofence-fm/GeofenceSingleton.java" target-dir="cl/finmarkets/geofence/" />
       <source-file src="src/android/cl/finmarkets/geofence-fm/GeofenceTransitionsIntentService.java" target-dir="cl/finmarkets/geofence/" />
-      <source-file src="src/android/cl/finmarkets/geofence-fm/JSONParser.java" target-dir="cl/finmarkets/geofence/" />
-      <source-file src="src/android/cl/finmarkets/geofence-fm/Constants.java" target-dir="cl/finmarkets/geofence/" />
+      <source-file src="src/android/cl/finmarkets/geofence-fm/GeofenceBroadcastReceiver.java" target-dir="cl/finmarkets/geofence/" />
+      <source-file src="src/android/cl/finmarkets/geofence-fm/GeofenceTransitionsJobIntentService.java" target-dir="cl/finmarkets/geofence/" />
+      <source-file src="src/android/cl/finmarkets/geofence-fm/GeofenceErrorMessages.java" target-dir="cl/finmarkets/geofence/" />
       
     </platform>
 
