@@ -45,7 +45,7 @@
 
       <framework src='com.google.android.gms:play-services-location:16.0.0' />
       <framework src="com.google.firebase:firebase-messaging:17.4.0"/>
-      <dependency id="cordova-support-google-services" version="~1.1.0"/>
+      <dependency id="cordova-support-google-services" version="~1.3.1"/>
         
       <source-file src="src/android/cl/finmarkets/geofence-fm/GeofenceFM.java" target-dir="cl/finmarkets/geofence/" />
       <source-file src="src/android/cl/finmarkets/geofence-fm/GeofenceTransitionsIntentService.java" target-dir="cl/finmarkets/geofence/" />
